@@ -92,7 +92,7 @@ bool search(uint16_t puzzle[9][9], uint16_t retpuzzle[9][9]) {
     return true;
 }
 
-bool solve(uint16_t puzzle[9][9]) {
+bool solve(uint16_t puzzle[9][9], uint16_t retpuzzle[9][9]) {
     for (size_t i = 0; i < 9; ++i) {
         for (size_t j = 0; j < 9; ++j) {
             if (!propagate_constraints(puzzle, i, j)) {
@@ -101,7 +101,7 @@ bool solve(uint16_t puzzle[9][9]) {
         }
     }
 
-    return search(puzzle, puzzle);
+    return search(puzzle, retpuzzle);
 }
 
 void solve_string(char *str_puzzle) {
@@ -113,7 +113,7 @@ void solve_string(char *str_puzzle) {
         }
     }
 
-    solve(puzzle);
+    solve(puzzle, puzzle);
 
     for (size_t i = 0; i < 9; ++i) {
         for (size_t j = 0; j < 9; ++j) {
