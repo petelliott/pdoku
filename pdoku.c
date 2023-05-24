@@ -8,56 +8,59 @@
 bool propagate_constraints(uint16_t puzzle[9][9], size_t i, size_t j) {
     uint16_t val = puzzle[i][j];
     int popcnt = __builtin_popcount(val);
+
     if (popcnt == 0) {
         return false;
-    } else if (popcnt == 1) {
-        int num = __builtin_ffs(val) - 1;
+    } else if (popcnt > 1) {
+        return true;
+    }
 
-        for (size_t i2 = 0; i2 < 9; ++i2) {
-            if (i2 != i) {
-                uint16_t old = puzzle[i2][j];
-                puzzle[i2][j] &= ~(1 << num);
+    int num = __builtin_ffs(val) - 1;
 
-                if (puzzle[i2][j] == 0) {
-                    return false;
-                }
+    for (size_t i2 = 0; i2 < 9; ++i2) {
+        if (i2 != i) {
+            uint16_t old = puzzle[i2][j];
+            puzzle[i2][j] &= ~(1 << num);
 
-                if (puzzle[i2][j] != old && !propagate_constraints(puzzle, i2, j)) {
-                    return false;
-                }
+            if (puzzle[i2][j] == 0) {
+                return false;
+            }
+
+            if (puzzle[i2][j] != old && !propagate_constraints(puzzle, i2, j)) {
+                return false;
             }
         }
+    }
 
-        for (size_t j2 = 0; j2 < 9; ++j2) {
-            if (j2 != j) {
-                uint16_t old = puzzle[i][j2];
-                puzzle[i][j2] &= ~(1 << num);
-                if (puzzle[i][j2] == 0) {
-                    return false;
-                }
+    for (size_t j2 = 0; j2 < 9; ++j2) {
+        if (j2 != j) {
+            uint16_t old = puzzle[i][j2];
+            puzzle[i][j2] &= ~(1 << num);
+            if (puzzle[i][j2] == 0) {
+                return false;
+            }
 
-                if (puzzle[i][j2] != old && !propagate_constraints(puzzle, i, j2)) {
-                    return false;
-                }
+            if (puzzle[i][j2] != old && !propagate_constraints(puzzle, i, j2)) {
+                return false;
             }
         }
+    }
 
-        size_t boxi = (i / 3) * 3;
-        size_t boxj = (j / 3) * 3;
+    size_t boxi = (i / 3) * 3;
+    size_t boxj = (j / 3) * 3;
 
-        for (size_t i2 = boxi; i2 < boxi + 3; ++i2) {
-            for (size_t j2 = boxj; j2 < boxj + 3; ++j2) {
-                if (i2 != i || j2 != j) {
-                    uint16_t old = puzzle[i2][j2];
-                    puzzle[i2][j2] &= ~(1 << num);
+    for (size_t i2 = boxi; i2 < boxi + 3; ++i2) {
+        for (size_t j2 = boxj; j2 < boxj + 3; ++j2) {
+            if (i2 != i || j2 != j) {
+                uint16_t old = puzzle[i2][j2];
+                puzzle[i2][j2] &= ~(1 << num);
 
-                    if (puzzle[i2][j2] == 0) {
-                        return false;
-                    }
+                if (puzzle[i2][j2] == 0) {
+                    return false;
+                }
 
-                    if (puzzle[i2][j2] != old && !propagate_constraints(puzzle, i2, j2)) {
-                        return false;
-                    }
+                if (puzzle[i2][j2] != old && !propagate_constraints(puzzle, i2, j2)) {
+                    return false;
                 }
             }
         }
@@ -66,19 +69,17 @@ bool propagate_constraints(uint16_t puzzle[9][9], size_t i, size_t j) {
     return true;
 }
 
-bool search(uint16_t puzzle[9][9]) {
+bool search(uint16_t puzzle[9][9], uint16_t retpuzzle[9][9]) {
     for (size_t i = 0; i < 9; ++i) {
         for (size_t j = 0; j < 9; ++j) {
             uint16_t val = puzzle[i][j];
             int popcnt = __builtin_popcount(val);
             if (popcnt > 1) {
                 for (size_t off = __builtin_ffs(val); off != 0; off = __builtin_ffs(val & ~((1<<off) - 1))) {
-                    //printf("i=%lu, j=%lu, off=%lu, val=%x\n", i, j, off, val & ~((1<<off) - 1));
                     uint16_t puzzle2[9][9];
                     memcpy(puzzle2, puzzle, sizeof(puzzle2));
                     puzzle2[i][j] = 1 << (off - 1);
-                    if (propagate_constraints(puzzle2, i, j) && search(puzzle2)) {
-                        memcpy(puzzle, puzzle2, sizeof(puzzle2));
+                    if (propagate_constraints(puzzle2, i, j) && search(puzzle2, retpuzzle)) {
                         return true;
                     }
                 }
@@ -87,6 +88,7 @@ bool search(uint16_t puzzle[9][9]) {
         }
     }
 
+    memcpy(retpuzzle, puzzle, sizeof(uint16_t[9][9]));
     return true;
 }
 
@@ -99,7 +101,7 @@ bool solve(uint16_t puzzle[9][9]) {
         }
     }
 
-    return search(puzzle);
+    return search(puzzle, puzzle);
 }
 
 void solve_string(char *str_puzzle) {
