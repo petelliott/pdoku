@@ -66,14 +66,27 @@ bool propagate_constraints(uint16_t puzzle[9][9], size_t i, size_t j) {
     return true;
 }
 
-bool iscomplete(uint16_t puzzle[9][9]) {
+bool search(uint16_t puzzle[9][9]) {
     for (size_t i = 0; i < 9; ++i) {
         for (size_t j = 0; j < 9; ++j) {
-            if (__builtin_popcount(puzzle[i][j]) != 1) {
+            uint16_t val = puzzle[i][j];
+            int popcnt = __builtin_popcount(val);
+            if (popcnt > 1) {
+                for (size_t off = __builtin_ffs(val); off != 0; off = __builtin_ffs(val & ~((1<<off) - 1))) {
+                    //printf("i=%lu, j=%lu, off=%lu, val=%x\n", i, j, off, val & ~((1<<off) - 1));
+                    uint16_t puzzle2[9][9];
+                    memcpy(puzzle2, puzzle, sizeof(puzzle2));
+                    puzzle2[i][j] = 1 << (off - 1);
+                    if (propagate_constraints(puzzle2, i, j) && search(puzzle2)) {
+                        memcpy(puzzle, puzzle2, sizeof(puzzle2));
+                        return true;
+                    }
+                }
                 return false;
             }
         }
     }
+
     return true;
 }
 
@@ -86,27 +99,7 @@ bool solve(uint16_t puzzle[9][9]) {
         }
     }
 
-    for (size_t i = 0; i < 9; ++i) {
-        for (size_t j = 0; j < 9; ++j) {
-            uint16_t val = puzzle[i][j];
-            int popcnt = __builtin_popcount(val);
-            if (popcnt > 1) {
-                for (size_t off = __builtin_ffs(val); off != 0; off = __builtin_ffs(val & ~((1<<off) - 1))) {
-                    //printf("i=%lu, j=%lu, off=%lu, val=%x\n", i, j, off, val & ~((1<<off) - 1));
-                    uint16_t puzzle2[9][9];
-                    memcpy(puzzle2, puzzle, sizeof(puzzle2));
-                    puzzle2[i][j] = 1 << (off - 1);
-                    if (solve(puzzle2)) {
-                        memcpy(puzzle, puzzle2, sizeof(puzzle2));
-                        return true;
-                    }
-                }
-                return false;
-            }
-        }
-    }
-
-    return true;
+    return search(puzzle);
 }
 
 void solve_string(char *str_puzzle) {
